@@ -1,9 +1,14 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
+﻿from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     APP_ENV: str = "development"
+
+    # AI Service Connection
+    AI_SERVICE_URL: str = "http://localhost:8001"
 
     # Supabase
     # Optional in the local STT demo. Production deployments should provide all
@@ -26,9 +31,6 @@ class Settings(BaseSettings):
     STT_DATASTORE_PATH: str = ""
     STT_UPLOAD_DIR: str = "data/stt_uploads"
     STT_MAX_UPLOAD_MB: int = 100
-
-    class Config:
-        env_file = ".env"
 
 
 @lru_cache()

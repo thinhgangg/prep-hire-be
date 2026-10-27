@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.stt import router as stt_router
+from app.api.ai_proxy import router as ai_proxy_router
 
 app = FastAPI(
     title="NextStepAI API",
@@ -15,6 +16,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -22,11 +25,16 @@ app.add_middleware(
 )
 
 app.include_router(stt_router)
+app.include_router(ai_proxy_router)
 
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"message": "NextStepAI API is running", "env": settings.APP_ENV}
+    return {
+        "message": "NextStepAI API is running",
+        "env": settings.APP_ENV,
+        "ai_service_url": settings.AI_SERVICE_URL,
+    }
 
 
 @app.get("/health", tags=["Health"])
