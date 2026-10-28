@@ -48,7 +48,10 @@ class STTService:
 
     def transcribe(self, audio_path: Path, context: str = "") -> dict[str, Any]:
         if settings.STT_REMOTE_BASE_URL:
-            return self._transcribe_remote(audio_path, context)
+            try:
+                return self._transcribe_remote(audio_path, context)
+            except Exception:
+                pass
 
         started = time.perf_counter()
         model = self._get_model()
@@ -99,40 +102,45 @@ class STTService:
         base_url = settings.STT_REMOTE_BASE_URL.rstrip("/")
         headers = {"ngrok-skip-browser-warning": "true"}
         timeout = httpx.Timeout(settings.STT_REMOTE_TIMEOUT_SECONDS)
-        with httpx.Client(timeout=timeout, headers=headers) as client:
-            with audio_path.open("rb") as audio_stream:
-                response = client.post(
-                    f"{base_url}/api/v1/stt/jobs",
-                    files={
-                        "audio": (
-                            audio_path.name,
-                            audio_stream,
-                            self._audio_content_type(audio_path),
-                        )
-                    },
-                    data={
-                        "interview_id": "local-proxy",
-                        "question_id": audio_path.stem,
-                        "context": context,
-                    },
-                )
-            response.raise_for_status()
-            remote_job = response.json()
-            remote_job_id = remote_job["id"]
-            deadline = time.monotonic() + settings.STT_REMOTE_TIMEOUT_SECONDS
-            while time.monotonic() < deadline:
-                response = client.get(f"{base_url}/api/v1/stt/jobs/{remote_job_id}")
+        try:
+            with httpx.Client(timeout=timeout, headers=headers) as client:
+                with audio_path.open("rb") as audio_stream:
+                    response = client.post(
+                        f"{base_url}/api/v1/stt/jobs",
+                        files={
+                            "audio": (
+                                audio_path.name,
+                                audio_stream,
+                                self._audio_content_type(audio_path),
+                            )
+                        },
+                        data={
+                            "interview_id": "local-proxy",
+                            "question_id": audio_path.stem,
+                            "context": context,
+                        },
+                    )
                 response.raise_for_status()
                 remote_job = response.json()
-                if remote_job.get("status") == "completed":
-                    break
-                if remote_job.get("status") == "failed":
-                    raise RuntimeError(
-                        remote_job.get("error") or "Whisper GPU worker failed"
-                    )
-                time.sleep(settings.STT_REMOTE_POLL_INTERVAL_SECONDS)
-            else:
-                raise TimeoutError("Whisper GPU worker timed out")
+                remote_job_id = remote_job["id"]
+                deadline = time.monotonic() + settings.STT_REMOTE_TIMEOUT_SECONDS
+                while time.monotonic() < deadline:
+                    response = client.get(f"{base_url}/api/v1/stt/jobs/{remote_job_id}")
+                    response.raise_for_status()
+                    remote_job = response.json()
+                    if remote_job.get("status") == "completed":
+                        break
+                    if remote_job.get("status") == "failed":
+                        raise RuntimeError(
+                            remote_job.get("error") or "Whisper GPU worker failed"
+                        )
+                    time.sleep(settings.STT_REMOTE_POLL_INTERVAL_SECONDS)
+                else:
+                    raise TimeoutError("Whisper GPU worker timed out")
+        except Exception as exc:
+            raise RuntimeError(
+                f"Loi ket noi Colab GPU STT ({base_url}): {str(exc)}. Vui long kiem tra Cell 3 tren Google Colab xem da khoi dong va URL ngrok dung chua."
+            ) from exc
 
         remote_result = remote_job.get("result") or {}
         raw = str(remote_result.get("raw_transcript") or "").strip()

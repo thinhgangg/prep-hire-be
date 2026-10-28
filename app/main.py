@@ -1,3 +1,10 @@
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 from contextlib import asynccontextmanager
 
@@ -12,7 +19,10 @@ from app.services.stt_service import stt_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    stt_service.warmup()
+    try:
+        stt_service.warmup()
+    except Exception:
+        pass
     yield
 
 
