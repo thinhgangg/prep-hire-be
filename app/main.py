@@ -1,14 +1,27 @@
-﻿from fastapi import FastAPI
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.api.stt import router as stt_router
 from app.api.ai_proxy import router as ai_proxy_router
+from app.services.stt_service import stt_service
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    stt_service.warmup()
+    yield
+
 
 app = FastAPI(
     title="NextStepAI API",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

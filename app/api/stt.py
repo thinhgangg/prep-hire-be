@@ -112,10 +112,27 @@ def get_job(job_id: str) -> dict[str, Any]:
 
 @router.get("/config")
 def get_demo_config() -> dict[str, Any]:
+    supabase_datastore = bool(
+        settings.SUPABASE_URL
+        and (settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY)
+    )
     return {
-        "model": settings.STT_MODEL,
-        "device": settings.STT_DEVICE,
-        "compute_type": settings.STT_COMPUTE_TYPE,
+        "model": "remote-whisper" if settings.STT_REMOTE_BASE_URL else settings.STT_MODEL,
+        "device": "remote-gpu" if settings.STT_REMOTE_BASE_URL else settings.STT_DEVICE,
+        "compute_type": "float16" if settings.STT_REMOTE_BASE_URL else settings.STT_COMPUTE_TYPE,
         "language": settings.STT_LANGUAGE,
-        "datastore_configured": stt_service._resolve_datastore_path() is not None,
+        "remote_worker_configured": bool(settings.STT_REMOTE_BASE_URL),
+        "datastore_source": (
+            "supabase"
+            if supabase_datastore
+            else "jsonl" if stt_service._resolve_datastore_path() is not None else "none"
+        ),
+        "datastore_configured": supabase_datastore
+        or stt_service._resolve_datastore_path() is not None,
     }
+
+
+@router.post("/datastore/refresh")
+def refresh_datastore() -> dict[str, Any]:
+    pattern_count = stt_service.refresh_datastore()
+    return {"status": "ok", "alias_pattern_count": pattern_count}

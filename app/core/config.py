@@ -23,14 +23,18 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Speech-to-text demo
-    STT_MODEL: str = "turbo"
+    STT_MODEL: str = "small"
     STT_DEVICE: str = "cpu"
     STT_COMPUTE_TYPE: str = "int8"
     STT_LANGUAGE: str = "vi"
-    STT_BEAM_SIZE: int = 5
+    STT_BEAM_SIZE: int = 1
     STT_DATASTORE_PATH: str = ""
     STT_UPLOAD_DIR: str = "data/stt_uploads"
     STT_MAX_UPLOAD_MB: int = 100
+    STT_REMOTE_BASE_URL: str = ""
+    STT_REMOTE_TIMEOUT_SECONDS: int = 180
+    STT_REMOTE_POLL_INTERVAL_SECONDS: float = 0.25
+    STT_DATASTORE_CACHE_SECONDS: int = 300
 
 
 @lru_cache()
