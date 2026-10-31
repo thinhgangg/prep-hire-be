@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     # AI Service Connection
     AI_SERVICE_URL: str = "http://localhost:8001"
 
+    # In-process text-to-speech (KorvaTTS, lazy-loaded on first request)
+    TTS_MAX_TEXT_LENGTH: int = 1500
+    KORVA_VOICE: str = "hoang_nam"
+    KORVA_TOTAL_STEPS: int = 16
+    KORVA_SPEED: float = 1.05
+    KORVA_CACHE_DIR: str = "data/tts_cache"
+    KORVA_HF_HOME: str = "data/huggingface"
+
     # Supabase
     # Optional in the local STT demo. Production deployments should provide all
     # three values before enabling persistence/authentication.

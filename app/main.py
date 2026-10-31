@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.stt import router as stt_router
 from app.api.ai_proxy import router as ai_proxy_router
+from app.api.tts import router as tts_router
 from app.services.stt_service import stt_service
 
 
@@ -49,6 +50,7 @@ app.add_middleware(
 
 app.include_router(stt_router)
 app.include_router(ai_proxy_router)
+app.include_router(tts_router)
 
 
 @app.get("/", tags=["Health"])

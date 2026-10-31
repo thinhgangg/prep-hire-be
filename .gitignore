@@ -11,6 +11,8 @@ __pycache__/
 .ruff_cache/
 
 data/stt_uploads/
+data/tts_cache/
+data/huggingface/
 *.log
 
 .DS_Store
