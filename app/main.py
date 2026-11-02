@@ -21,10 +21,11 @@ from app.services.stt_service import stt_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        stt_service.warmup()
-    except Exception:
-        pass
+    if settings.STT_PREWARM_ENABLED:
+        try:
+            stt_service.warmup()
+        except Exception:
+            pass
     yield
 
 
@@ -39,10 +40,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
+        origin.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     APP_ENV: str = "development"
+    CORS_ORIGINS: str = (
+        "http://localhost:5173,http://localhost:5174,"
+        "http://127.0.0.1:5173,http://127.0.0.1:5174"
+    )
 
     # AI Service Connection
     AI_SERVICE_URL: str = "http://localhost:8001"
@@ -32,6 +36,7 @@ class Settings(BaseSettings):
 
     # Speech-to-text demo
     STT_MODEL: str = "small"
+    STT_PREWARM_ENABLED: bool = True
     STT_DEVICE: str = "cpu"
     STT_COMPUTE_TYPE: str = "int8"
     STT_LANGUAGE: str = "vi"
