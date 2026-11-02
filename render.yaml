@@ -3,7 +3,7 @@ services:
     name: prep-hire-be
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.render.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -18,12 +18,4 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: JWT_SECRET
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: STT_REMOTE_BASE_URL
         sync: false
