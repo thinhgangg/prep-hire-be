@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.api.stt import router as stt_router
 from app.api.ai_proxy import router as ai_proxy_router
 from app.api.tts import router as tts_router
+from app.api.auth import router as auth_router
 from app.services.stt_service import stt_service
 
 
@@ -48,6 +49,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(stt_router)
 app.include_router(ai_proxy_router)
 app.include_router(tts_router)
