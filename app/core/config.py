@@ -1,4 +1,4 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,17 +22,18 @@ class Settings(BaseSettings):
     KORVA_CACHE_DIR: str = "data/tts_cache"
     KORVA_HF_HOME: str = "data/huggingface"
 
-    # Supabase
+    # Supabase & PostgreSQL Database
     # Optional in the local STT demo. Production deployments should provide all
-    # three values before enabling persistence/authentication.
+    # values before enabling persistence/authentication.
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    DATABASE_URL: str = "postgresql://postgres.sjhndvloovjdzbdpvwjp:Duy120811072005@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
     # JWT
     JWT_SECRET: str = "local-demo-only-change-me"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
     # Speech-to-text demo
     STT_MODEL: str = "small"
