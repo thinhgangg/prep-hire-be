@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.security import (
+    AuthenticatedUser,
+    get_current_user_dep,
+    rate_limit,
+    require_user_or_internal_service,
+)
 from app.services.tts_service import tts_service
 
 
@@ -28,8 +34,14 @@ def tts_health() -> dict[str, object]:
     }
 
 
-@router.post("/speech")
-async def synthesize_speech(payload: SpeechRequest) -> Response:
+@router.post(
+    "/speech",
+    dependencies=[Depends(rate_limit("tts_speech", settings.RATE_LIMIT_API_PER_MIN))],
+)
+async def synthesize_speech(
+    payload: SpeechRequest,
+    _: AuthenticatedUser = Depends(get_current_user_dep),
+) -> Response:
     text = tts_service.normalize_text(payload.text)
     if not text:
         raise HTTPException(status_code=400, detail="Nội dung cần đọc không được để trống")
@@ -49,11 +61,14 @@ async def synthesize_speech(payload: SpeechRequest) -> Response:
 
 
 @router.post("/prewarm", status_code=status.HTTP_202_ACCEPTED)
-def prewarm_speech(payload: SpeechRequest, background_tasks: BackgroundTasks) -> dict[str, object]:
+def prewarm_speech(
+    payload: SpeechRequest,
+    background_tasks: BackgroundTasks,
+    _: AuthenticatedUser | None = Depends(require_user_or_internal_service),
+) -> dict[str, object]:
     """Start synthesis as soon as AI selects a question, without blocking AI."""
     text = tts_service.normalize_text(payload.text)
     if not text:
         raise HTTPException(status_code=400, detail="Nội dung cần đọc không được để trống")
     background_tasks.add_task(tts_service.prewarm, text)
     return {"accepted": True, "voice": settings.KORVA_VOICE}
-
