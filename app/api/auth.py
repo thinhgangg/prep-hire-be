@@ -287,8 +287,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     # 1. Tìm kiếm trong Database (Email hoặc tên đăng nhập)
     if db is not None:
         try:
+            candidate_emails = [identifier_lower]
+            if "@" not in identifier_lower:
+                candidate_emails.append(f"{identifier_lower}@prephire.vn")
             db_user = db.query(User).filter(
-                (func.lower(User.email) == identifier_lower) |
+                (func.lower(User.email).in_(candidate_emails)) |
                 (func.lower(User.name) == identifier_lower)
             ).first()
 
@@ -395,13 +398,13 @@ def get_current_user(
         user_id_str = payload.get("sub")
         email = payload.get("email")
 
-        # Thử lấy thông tin mới nhất từ database
+        # Thử lấy thông tin mới nhất từ database (ưu tiên khớp email trước)
         if db is not None:
             db_user = None
-            if user_id_str and user_id_str.isdigit():
-                db_user = db.query(User).filter(User.user_id == int(user_id_str)).first()
-            if not db_user and email:
+            if email:
                 db_user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+            if not db_user and user_id_str and user_id_str.isdigit() and int(user_id_str) > 0:
+                db_user = db.query(User).filter(User.user_id == int(user_id_str)).first()
             if db_user:
                 return _db_user_to_user_info(db_user)
 
@@ -496,24 +499,42 @@ def update_profile(
         )
 
     db_user = None
-    if user_id_str and user_id_str.isdigit():
-        db_user = db.query(User).filter(User.user_id == int(user_id_str)).first()
-    if not db_user and email:
+    if email:
         db_user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+    if not db_user and user_id_str and user_id_str.isdigit() and int(user_id_str) > 0:
+        db_user = db.query(User).filter(User.user_id == int(user_id_str)).first()
 
     if not db_user:
-        num = int(user_id_str) if (user_id_str and user_id_str.isdigit()) else 0
-        return UserInfo(
-            id=token_data.get("id") or f"user-{num:03d}",
-            user_id_num=num,
-            username=token_data.get("email", "").split("@")[0] or "user",
-            name=payload.name or token_data.get("name") or "Người dùng",
-            email=payload.email or token_data.get("email") or "",
-            role=token_data.get("role") or "CANDIDATE",
-            phone=payload.phone,
-            current_role=payload.current_role,
-            location=payload.location,
-        )
+        # Tạo bản ghi thật trong PostgreSQL cho tài khoản demo (user1..user100, admin, recruiter)
+        target_email = (payload.email or email or f"user{user_id_str or '0'}@prephire.vn").strip().lower()
+        target_name = (payload.name or token_data.get("name") or target_email.split("@")[0]).strip()
+        salt = bcrypt.gensalt(rounds=10)
+        default_hashed = bcrypt.hashpw(MOCK_PASSWORD.encode("utf-8"), salt).decode("utf-8")
+        db_role = _normalize_role_for_db(token_data.get("role"))
+        try:
+            db_user = User(
+                email=target_email,
+                password=default_hashed,
+                name=target_name,
+                role=db_role,
+                phone=(payload.phone or "").strip() or None,
+                current_role=(payload.current_role or "").strip() or None,
+                location=(payload.location or "").strip() or None,
+                avatar=(payload.avatar or "").strip() or None,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+            return _db_user_to_user_info(db_user)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Lỗi tạo user khi cập nhật profile: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể lưu thông tin hồ sơ vào cơ sở dữ liệu.",
+            )
 
     # Cập nhật các trường
     if payload.name is not None and payload.name.strip():

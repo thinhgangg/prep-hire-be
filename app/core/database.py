@@ -46,7 +46,7 @@ def get_supabase_admin() -> Client | None:
 
 
 def get_engine():
-    """Khởi tạo hoặc trả về SQLAlchemy engine tái sử dụng connection pool."""
+    """Khởi tạo hoặc trả về SQLAlchemy engine (psycopg3 / psycopg2) tái sử dụng connection pool."""
     global _engine
     if _engine is None:
         db_url = settings.DATABASE_URL
